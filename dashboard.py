@@ -198,22 +198,10 @@ st.title("📊 Registro de Inversiones No Programadas")
 st.caption("Seguimiento del estado de las solicitudes de INP")
 
 
-# ============================================================
-# SELECCION DEL ARCHIVO
-# ============================================================
 st.sidebar.header("Fuente de información")
 
-archivo_subido = st.sidebar.file_uploader(
-    "Cargar reporte Excel",
-    type=["xlsx"]
-)
-
-if archivo_subido is not None:
-    origen = archivo_subido
-    nombre_fuente = archivo_subido.name
-else:
-    origen = ARCHIVO_EXCEL
-    nombre_fuente = str(ARCHIVO_EXCEL)
+origen = ARCHIVO_EXCEL
+nombre_fuente = ARCHIVO_EXCEL.name
 
 try:
     df_original = cargar_datos(origen)
