@@ -93,7 +93,11 @@ def cargar_datos(origen):
     df["ESTADO_RESUMEN"] = (
         df["ESTADO"].map(mapa_estados).fillna(df["ESTADO"])
     )
-    df["FECHA"] = df["FECHA SOLICITUD"].dt.normalize()
+    
+    df["FECHA"] = pd.to_datetime(
+        df["FECHA SOLICITUD"],
+        errors="coerce"
+    ).dt.floor("D")
 
     return df
 
