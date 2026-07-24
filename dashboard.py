@@ -194,7 +194,7 @@ def exportar_excel(tabla_estado, tabla_porcentaje, tabla_pendientes, detalle):
 # ============================================================
 # ENCABEZADO
 # ============================================================
-st.title("📊 Dashboard de Inversiones No Programadas")
+st.title("📊 Registro de Inversiones No Programadas")
 st.caption("Seguimiento del estado de las solicitudes de INP")
 
 
