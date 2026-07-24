@@ -245,25 +245,6 @@ if faltantes:
 
 st.sidebar.success(f"Archivo cargado: {Path(nombre_fuente).name}")
 
-
-# ============================================================
-# OPCION DE DUPLICADOS
-# ============================================================
-st.sidebar.header("Criterio de conteo")
-
-solo_ultimo = st.sidebar.checkbox(
-    "Usar solo el último registro por inversión",
-    value=False,
-    help="Conserva el registro más reciente de cada Código Único."
-)
-
-df_base = (
-    conservar_ultimo_registro(df_original)
-    if solo_ultimo
-    else df_original.copy()
-)
-
-
 # ============================================================
 # FILTROS
 # ============================================================
