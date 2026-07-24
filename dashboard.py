@@ -6,17 +6,18 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+# Carpeta donde se encuentra dashboard.py
+CARPETA = Path(__file__).resolve().parent
+RUTA_FAVICON = CARPETA / "favicon.png"
+
 # ============================================================
 # CONFIGURACION
 # ============================================================
 st.set_page_config(
     page_title="Dashboard INP",
-    page_icon="📊",
+    page_icon=str(RUTA_FAVICON),
     layout="wide"
 )
-
-# Carpeta donde se encuentra dashboard.py
-CARPETA = Path(__file__).resolve().parent
 
 # Excel ubicado en la misma carpeta
 ARCHIVO_EXCEL = (
