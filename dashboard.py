@@ -8,7 +8,7 @@ import streamlit as st
 
 # Carpeta donde se encuentra dashboard.py
 CARPETA = Path(__file__).resolve().parent
-RUTA_FAVICON = CARPETA / "favicon.png"
+RUTA_FAVICON = CARPETA / "web-app-manifest-512x512.png"
 
 # ============================================================
 # CONFIGURACION
