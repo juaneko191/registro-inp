@@ -51,7 +51,6 @@ def normalizar_columnas(columnas):
     )
 
 
-@st.cache_data
 def cargar_datos(origen):
     # La cabecera esta en la fila 3 de Excel, por eso header=2.
     df = pd.read_excel(
