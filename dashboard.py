@@ -567,6 +567,78 @@ def crear_tabla_pendientes(df):
 
     return tabla.astype(int)
 
+def crear_tabla_estado_solicitudes(df, fecha_corte):
+
+    fecha_corte = pd.Timestamp(fecha_corte).normalize()
+
+    rechazadas = df[
+        df["ESTADO_RESUMEN"] == ESTADO_RECHAZADO
+    ]
+
+    validadas = df[
+        df["ESTADO_RESUMEN"] == ESTADO_VALIDADO
+    ]
+
+    solicitudes_dia = df[
+        df["FECHA SOLICITUD"]
+        .dt.normalize()
+        .eq(fecha_corte)
+    ]
+
+    atenciones_dia = df[
+        df["ESTADO_RESUMEN"].isin(
+            [ESTADO_RECHAZADO, ESTADO_VALIDADO]
+        )
+        &
+        df["FECHA APROBACION DGPMI"]
+        .dt.normalize()
+        .eq(fecha_corte)
+    ]
+
+    tabla = pd.DataFrame(
+        index=ORDEN_NIVELES
+    )
+
+    tabla[("Total", "Solicitudes (a)")] = (
+        contar_por_nivel(df)
+    )
+
+    tabla[("Total", "Rechazado (b)")] = (
+        contar_por_nivel(rechazadas)
+    )
+
+    tabla[("Total", "Validado (c)")] = (
+        contar_por_nivel(validadas)
+    )
+
+    tabla[("Total", "Pendiente (a)-(b+c)")] = (
+        tabla[("Total", "Solicitudes (a)")]
+        - tabla[("Total", "Rechazado (b)")]
+        - tabla[("Total", "Validado (c)")]
+    )
+
+    tabla[("Del día (*)", "Solicitudes (d)")] = (
+        contar_por_nivel(solicitudes_dia)
+    )
+
+    tabla[("Del día (*)", "Atenciones (e)")] = (
+        contar_por_nivel(atenciones_dia)
+    )
+
+    tabla[("Del día (*)", "Pendientes (d)-(e)")] = (
+        tabla[("Del día (*)", "Solicitudes (d)")]
+        - tabla[("Del día (*)", "Atenciones (e)")]
+    )
+
+    tabla.columns = pd.MultiIndex.from_tuples(
+        tabla.columns
+    )
+
+    tabla.loc["Total"] = tabla.sum(axis=0)
+
+    tabla.index.name = "Nivel de gobierno"
+
+    return tabla.astype(int)
 
 # ============================================================
 # FORMATOS VISUALES
@@ -1031,11 +1103,11 @@ if (
 # CREACIÓN DE LAS CUATRO TABLAS
 # ============================================================
 
-tabla_estado = crear_tabla_estado(df)
-
-tabla_solicitudes = crear_tabla_solicitudes_atenciones(
-    df,
-    fecha_corte
+tabla_estado_solicitudes = (
+    crear_tabla_estado_solicitudes(
+        df,
+        fecha_corte
+    )
 )
 
 tabla_atendidas = crear_tabla_atendidas(df)
@@ -1044,46 +1116,26 @@ tabla_pendientes = crear_tabla_pendientes(df)
 
 
 # ============================================================
-# SECCIÓN 1: ESTADO DE SOLICITUDES
+# SECCIÓN 1
 # ============================================================
 
 titulo_seccion("Estado de solicitudes")
 
-st.markdown(
-    '<div class="descripcion-seccion">'
-    'Distribución acumulada de solicitudes según el estado '
-    'actual y el nivel de gobierno.'
-    '</div>',
-    unsafe_allow_html=True
-)
-
 st.dataframe(
-    estilo_tabla_estado(tabla_estado),
-    width="stretch",
+    tabla_estado_solicitudes,
+    width="stretch"
 )
 
+fecha_nota = pd.Timestamp(
+    fecha_corte
+).strftime("%d.%m.%Y")
 
-# ============================================================
-# SECCIÓN 2: SOLICITUDES Y ATENCIONES
-# ============================================================
-
-titulo_seccion("Solicitudes y atenciones")
-
-st.markdown(
-    f'<div class="descripcion-seccion">'
-    f'(*) Las cifras del día corresponden al '
-    f'{pd.Timestamp(fecha_corte).strftime("%d/%m/%Y")}. '
-    f'Las atenciones incluyen solicitudes validadas '
-    f'y rechazadas por la DGPMI.'
-    f'</div>',
-    unsafe_allow_html=True
+st.caption(
+    f"(*) Corresponde a las solicitudes del día "
+    f"{fecha_nota}"
 )
 
-st.dataframe(
-    estilo_tabla_general(tabla_solicitudes),
-    width="stretch",
-)
-
+st.caption("Fuente: MPMI")
 
 # ============================================================
 # SECCIÓN 3: SEGUIMIENTO DE SOLICITUDES ATENDIDAS
@@ -1265,8 +1317,7 @@ excel_descarga = None
 
 try:
     excel_descarga = exportar_excel(
-        tabla_estado=tabla_estado,
-        tabla_solicitudes=tabla_solicitudes,
+        tabla_estado_solicitudes=tabla_estado_solicitudes,
         tabla_atendidas=tabla_atendidas,
         tabla_pendientes=tabla_pendientes,
         detalle=detalle
