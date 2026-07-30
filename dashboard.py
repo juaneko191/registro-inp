@@ -471,17 +471,28 @@ def crear_tabla_atendidas(df):
     Sección 3: Seguimiento de solicitudes atendidas.
 
     Considera como atendidos los registros validados
-    y rechazados. Los agrupa por fecha de solicitud
-    y nivel de gobierno.
+    y rechazados por la DGPMI.
+
+    Los registros se agrupan y ordenan según la fecha
+    de atención, correspondiente a:
+    FECHA APROBACION DGPMI.
     """
+
+    estados_atendidos = [
+        ESTADO_VALIDADO,
+        ESTADO_RECHAZADO
+    ]
+
     atendidas = df[
-        df["ESTADO_RESUMEN"].isin(
-            [
-                ESTADO_VALIDADO,
-                ESTADO_RECHAZADO
-            ]
-        )
+        df["ESTADO_RESUMEN"].isin(estados_atendidos)
+        & df["FECHA APROBACION DGPMI"].notna()
     ].copy()
+
+    # Crear una fecha de atención sin componente de hora.
+    atendidas["FECHA_ATENCION"] = (
+        atendidas["FECHA APROBACION DGPMI"]
+        .dt.normalize()
+    )
 
     if atendidas.empty:
         tabla = pd.DataFrame(
@@ -490,22 +501,26 @@ def crear_tabla_atendidas(df):
         )
     else:
         tabla = pd.crosstab(
-            atendidas["FECHA"],
+            atendidas["FECHA_ATENCION"],
             atendidas["NIVEL DE GOBIERNO"]
         )
 
+    # Mantener el orden institucional de los niveles.
     tabla = tabla.reindex(
         columns=ORDEN_NIVELES,
         fill_value=0
     )
 
-    tabla = tabla.sort_index()
+    # Orden cronológico ascendente.
+    tabla = tabla.sort_index(
+        ascending=True
+    )
 
     tabla["Total de atendidos"] = tabla.sum(axis=1)
 
     tabla = agregar_fila_total(tabla)
 
-    tabla.index.name = "Fecha de solicitud"
+    tabla.index.name = "Fecha de atención"
 
     return tabla.astype(int)
 
@@ -1075,7 +1090,7 @@ titulo_seccion("Seguimiento de solicitudes atendidas")
 st.markdown(
     '<div class="descripcion-seccion">'
     'Solicitudes validadas o rechazadas, agrupadas por '
-    'fecha de solicitud y nivel de gobierno.'
+    'fecha de atención y nivel de gobierno.'
     '</div>',
     unsafe_allow_html=True
 )
