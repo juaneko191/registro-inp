@@ -1249,8 +1249,7 @@ st.dataframe(
 # ============================================================
 
 def exportar_excel(
-    tabla_estado,
-    tabla_solicitudes,
+    tabla_estado_solicitudes,
     tabla_atendidas,
     tabla_pendientes,
     detalle
@@ -1272,16 +1271,9 @@ def exportar_excel(
     ) as writer:
 
         # Sección 1: Estado de solicitudes
-        tabla_estado.to_excel(
+        tabla_estado_solicitudes.to_excel(
             writer,
             sheet_name="Estado_solicitudes"
-        )
-
-        # Sección 2: Solicitudes y atenciones
-        tabla_solicitudes.to_excel(
-            writer,
-            sheet_name="Solicitudes_atenciones",
-            merge_cells=False
         )
 
         # Sección 3: Seguimiento de atendidas
