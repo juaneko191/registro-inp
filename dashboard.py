@@ -34,7 +34,7 @@ st.set_page_config(**configuracion_pagina)
 # CONSTANTES
 # ============================================================
 
-ORDEN_NIVELES = ["GL-MD", "GL-MP", "GN", "GR"]
+ORDEN_NIVELES = ["GL-MD", "GL-MP", "GR", "GN"]
 
 ESTADO_RECHAZADO = "Rechazado por DGPMI"
 ESTADO_PENDIENTE = "Pendiente de evaluación DGPMI"
