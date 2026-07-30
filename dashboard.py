@@ -1178,7 +1178,7 @@ st.dataframe(
 
 
 # ============================================================
-# DESCARGA
+# DESCARGA DEL REPORTE EN EXCEL
 # ============================================================
 
 def exportar_excel(
@@ -1190,38 +1190,120 @@ def exportar_excel(
 ):
     """
     Genera un archivo Excel con las cuatro secciones
-    y el detalle de registros filtrados.
+    del reporte y el detalle de los registros filtrados.
+
+    Esta versión evita modificar directamente las celdas
+    combinadas generadas por los encabezados multinivel.
     """
-    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+    from openpyxl.cell.cell import MergedCell
+    from openpyxl.styles import (
+        Alignment,
+        Border,
+        Font,
+        PatternFill,
+        Side
+    )
     from openpyxl.utils import get_column_letter
 
     salida = io.BytesIO()
+
+    # --------------------------------------------------------
+    # ESTILOS DE EXCEL
+    # --------------------------------------------------------
+
+    lado_delgado = Side(
+        style="thin",
+        color="808080"
+    )
+
+    borde_completo = Border(
+        left=lado_delgado,
+        right=lado_delgado,
+        top=lado_delgado,
+        bottom=lado_delgado
+    )
+
+    alineacion_centrada = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True
+    )
+
+    alineacion_izquierda = Alignment(
+        horizontal="left",
+        vertical="center",
+        wrap_text=True
+    )
+
+    fuente_encabezado = Font(
+        bold=True,
+        color="000000"
+    )
+
+    fuente_total = Font(
+        bold=True,
+        color="000000"
+    )
+
+    relleno_encabezado = PatternFill(
+        fill_type="solid",
+        fgColor="D9D9D9"
+    )
+
+    relleno_total = PatternFill(
+        fill_type="solid",
+        fgColor="F2F2F2"
+    )
+
+    relleno_rechazado = PatternFill(
+        fill_type="solid",
+        fgColor="F4A0A4"
+    )
+
+    relleno_pendiente = PatternFill(
+        fill_type="solid",
+        fgColor="FFF48A"
+    )
+
+    relleno_validado = PatternFill(
+        fill_type="solid",
+        fgColor="92D050"
+    )
+
+    # --------------------------------------------------------
+    # CREAR EL ARCHIVO
+    # --------------------------------------------------------
 
     with pd.ExcelWriter(
         salida,
         engine="openpyxl"
     ) as writer:
 
+        # Sección 1
         tabla_estado.to_excel(
             writer,
             sheet_name="Estado_solicitudes"
         )
 
+        # Sección 2
         tabla_solicitudes.to_excel(
             writer,
             sheet_name="Solicitudes_atenciones"
         )
 
+        # Sección 3
         tabla_atendidas.to_excel(
             writer,
             sheet_name="Seguimiento_atendidas"
         )
 
+        # Sección 4
         tabla_pendientes.to_excel(
             writer,
             sheet_name="Pendientes_atencion"
         )
 
+        # Detalle
         detalle.to_excel(
             writer,
             sheet_name="Detalle_filtrado",
@@ -1229,82 +1311,138 @@ def exportar_excel(
         )
 
         # ----------------------------------------------------
-        # FORMATOS GENERALES
+        # CONFIGURACIÓN DE HOJAS
         # ----------------------------------------------------
 
-        relleno_encabezado = PatternFill(
-            fill_type="solid",
-            fgColor="D9D9D9"
-        )
+        configuracion_hojas = {
+            "Estado_solicitudes": {
+                "filas_encabezado": 1,
+                "inmovilizar": "B2",
+                "tiene_total": True
+            },
+            "Solicitudes_atenciones": {
+                "filas_encabezado": 3,
+                "inmovilizar": "B4",
+                "tiene_total": True
+            },
+            "Seguimiento_atendidas": {
+                "filas_encabezado": 1,
+                "inmovilizar": "B2",
+                "tiene_total": True
+            },
+            "Pendientes_atencion": {
+                "filas_encabezado": 1,
+                "inmovilizar": "B2",
+                "tiene_total": True
+            },
+            "Detalle_filtrado": {
+                "filas_encabezado": 1,
+                "inmovilizar": "A2",
+                "tiene_total": False
+            }
+        }
 
-        fuente_encabezado = Font(
-            bold=True,
-            color="000000"
-        )
+        for nombre_hoja, configuracion in configuracion_hojas.items():
 
-        borde_delgado = Side(
-            style="thin",
-            color="808080"
-        )
+            hoja = writer.sheets[nombre_hoja]
 
-        bordes = Border(
-            left=borde_delgado,
-            right=borde_delgado,
-            top=borde_delgado,
-            bottom=borde_delgado
-        )
+            filas_encabezado = configuracion[
+                "filas_encabezado"
+            ]
 
-        # ----------------------------------------------------
-        # AJUSTES POR HOJA
-        # ----------------------------------------------------
+            hoja.freeze_panes = configuracion[
+                "inmovilizar"
+            ]
 
-        for nombre_hoja, hoja in writer.sheets.items():
+            # Activar autofiltro en la hoja de detalle.
+            if nombre_hoja == "Detalle_filtrado":
+                hoja.auto_filter.ref = hoja.dimensions
 
-            # Inmoviliza encabezados.
-            if nombre_hoja == "Solicitudes_atenciones":
-                hoja.freeze_panes = "B4"
-            elif nombre_hoja == "Detalle_filtrado":
-                hoja.freeze_panes = "A2"
-            else:
-                hoja.freeze_panes = "B2"
+            # -----------------------------------------------
+            # FORMATO GENERAL DE LAS CELDAS
+            # -----------------------------------------------
 
-            # Formato de todas las celdas existentes.
             for fila in hoja.iter_rows():
                 for celda in fila:
 
-                    celda.alignment = Alignment(
-                        horizontal="center",
-                        vertical="center",
-                        wrap_text=True
-                    )
+                    # No modificar directamente celdas
+                    # pertenecientes a rangos combinados.
+                    if isinstance(celda, MergedCell):
+                        continue
 
-                    celda.border = bordes
+                    celda.border = borde_completo
+                    celda.alignment = alineacion_centrada
 
-            # Formato de encabezados.
-            filas_encabezado = 1
+            # -----------------------------------------------
+            # FORMATO DE LOS ENCABEZADOS
+            # -----------------------------------------------
 
-            if nombre_hoja == "Solicitudes_atenciones":
-                # Esta hoja tiene encabezado de dos niveles
-                # y una fila adicional con el nombre del índice.
-                filas_encabezado = 3
-
-            for fila in hoja.iter_rows(
-                min_row=1,
-                max_row=filas_encabezado
+            for numero_fila in range(
+                1,
+                filas_encabezado + 1
             ):
-                for celda in fila:
+                for celda in hojaif isinstance(celda, MergedCell):
+                        continue
+
                     celda.fill = relleno_encabezado
                     celda.font = fuente_encabezado
-                    celda.alignment = Alignment(
-                        horizontal="center",
-                        vertical="center",
-                        wrap_text=True
-                    )
+                    celda.border = borde_completo
+                    celda.alignment = alineacion_centrada
 
-            # Ajuste seguro del ancho de columnas.
-            # Se utiliza el número de columna en lugar de
-            # columna[0].column_letter para evitar errores
-            # con celdas combinadas.
+                hoja.row_dimensions[
+                    numero_fila
+                ].height = 38
+
+            # -----------------------------------------------
+            # BUSCAR Y FORMATEAR LA FILA TOTAL
+            # -----------------------------------------------
+
+            if configuracion["tiene_total"]:
+
+                fila_total = None
+
+                for numero_fila in range(
+                    1,
+                    hoja.max_row + 1
+                ):
+                    valor = hoja.cell(
+                        row=numero_fila,
+                        column=1
+                    ).value
+
+                    if (
+                        valor is not None
+                        and str(valor).strip() == "Total"
+                    ):
+                        fila_total = numero_fila
+
+                if fila_total is not None:
+
+                    for numero_columna in range(
+                        1,
+                        hoja.max_column + 1
+                    ):
+                        celda = hoja.cell(
+                            row=fila_total,
+                            column=numero_columna
+                        )
+
+                        if isinstance(celda, MergedCell):
+                            continue
+
+                        celda.font = fuente_total
+                        celda.border = borde_completo
+                        celda.alignment = alineacion_centrada
+
+                        # La tabla Estado de solicitudes
+                        # conserva los colores por columna.
+                        if nombre_hoja != "Estado_solicitudes":
+                            celda.fill = relleno_total
+
+            # -----------------------------------------------
+            # AJUSTAR EL ANCHO DE LAS COLUMNAS
+            # -----------------------------------------------
+
             for numero_columna in range(
                 1,
                 hoja.max_column + 1
@@ -1320,19 +1458,22 @@ def exportar_excel(
                         column=numero_columna
                     )
 
-                    valor = celda.value
-
-                    if valor is None:
+                    if isinstance(celda, MergedCell):
                         continue
 
-                    texto = str(valor)
+                    if celda.value is None:
+                        continue
 
-                    # En textos con saltos de línea se usa
-                    # la línea más larga para calcular el ancho.
-                    longitud = max(
-                        len(linea)
-                        for linea in texto.splitlines()
-                    )
+                    texto = str(celda.value)
+                    lineas = texto.splitlines()
+
+                    if lineas:
+                        longitud = max(
+                            len(linea)
+                            for linea in lineas
+                        )
+                    else:
+                        longitud = len(texto)
 
                     ancho_maximo = max(
                         ancho_maximo,
@@ -1343,36 +1484,39 @@ def exportar_excel(
                     numero_columna
                 )
 
-                hoja.column_dimensions[
-                    letra_columna
-                ].width = min(
+                ancho_final = min(
                     max(ancho_maximo + 2, 12),
                     45
                 )
 
-            # Altura de los encabezados.
-            for numero_fila in range(
-                1,
-                filas_encabezado + 1
-            ):
-                hoja.row_dimensions[
-                    numero_fila
-                ].height = 35
+                hoja.column_dimensions[
+                    letra_columna
+                ].width = ancho_final
 
         # ----------------------------------------------------
         # COLORES DE LA HOJA ESTADO DE SOLICITUDES
         # ----------------------------------------------------
 
-        hoja_estado = writer.sheets["Estado_solicitudes"]
+        hoja_estado = writer.sheets[
+            "Estado_solicitudes"
+        ]
 
-        colores_columnas = {
-            2: "F4A0A4",  # Rechazados
-            3: "FFF48A",  # Pendientes
-            4: "92D050",  # Validados
-            5: "F2F2F2"   # Total
+        # Las columnas se exportan en este orden:
+        # A: Nivel de gobierno
+        # B: Rechazado
+        # C: Pendiente
+        # D: Validado
+        # E: Total
+
+        rellenos_estado = {
+            2: relleno_rechazado,
+            3: relleno_pendiente,
+            4: relleno_validado,
+            5: relleno_total
         }
 
-        for numero_columna, color in colores_columnas.items():
+        for numero_columna, relleno in rellenos_estado.items():
+
             for numero_fila in range(
                 1,
                 hoja_estado.max_row + 1
@@ -1382,54 +1526,176 @@ def exportar_excel(
                     column=numero_columna
                 )
 
-                celda.fill = PatternFill(
-                    fill_type="solid",
-                    fgColor=color
-                )
+                if isinstance(celda, MergedCell):
+                    continue
 
-        # Resalta última fila de las cuatro tablas.
-        hojas_con_total = [
-            "Estado_solicitudes",
-            "Solicitudes_atenciones",
-            "Seguimiento_atendidas",
-            "Pendientes_atencion"
+                celda.fill = relleno
+                celda.border = borde_completo
+                celda.alignment = alineacion_centrada
+
+        # Encabezado y primera columna en gris.
+        for numero_fila in range(
+            1,
+            hoja_estado.max_row + 1
+        ):
+            celda = hoja_estado.cell(
+                row=numero_fila,
+                column=1
+            )
+
+            if isinstance(celda, MergedCell):
+                continue
+
+            celda.fill = relleno_total
+            celda.border = borde_completo
+            celda.alignment = alineacion_centrada
+
+        # ----------------------------------------------------
+        # FORMATO ESPECIAL DEL DETALLE
+        # ----------------------------------------------------
+
+        hoja_detalle = writer.sheets[
+            "Detalle_filtrado"
         ]
 
-        for nombre_hoja in hojas_con_total:
-            hoja = writer.sheets[nombre_hoja]
-            ultima_fila = hoja.max_row
+        encabezados_detalle = {
+            celda.value: celda.column
+            for celda in hoja_detalle[1]
+            if (
+                not isinstance(celda, MergedCell)
+                and celda.value is not None
+            )
+        }
 
-            for celda in hojacelda.font = Font(bold=True)
+        columnas_texto_largo = [
+            "NOMBRE DE INVERSIÓN",
+            "ENTIDAD REGISTRADORA"
+        ]
 
-                if nombre_hoja != "Estado_solicitudes":
-                    celda.fill = PatternFill(
-                        fill_type="solid",
-                        fgColor="F2F2F2"
+        for nombre_columna in columnas_texto_largo:
+
+            numero_columna = encabezados_detalle.get(
+                nombre_columna
+            )
+
+            if numero_columna is None:
+                continue
+
+            letra_columna = get_column_letter(
+                numero_columna
+            )
+
+            hoja_detalle.column_dimensions[
+                letra_columna
+            ].width = 45
+
+            for numero_fila in range(
+                2,
+                hoja_detalle.max_row + 1
+            ):
+                celda = hoja_detalle.cell(
+                    row=numero_fila,
+                    column=numero_columna
+                )
+
+                celda.alignment = alineacion_izquierda
+
+        # Formato de fechas.
+        columnas_fecha = [
+            "FECHA SOLICITUD",
+            "FECHA APROBACION DGPMI"
+        ]
+
+        for nombre_columna in columnas_fecha:
+
+            numero_columna = encabezados_detalle.get(
+                nombre_columna
+            )
+
+            if numero_columna is None:
+                continue
+
+            for numero_fila in range(
+                2,
+                hoja_detalle.max_row + 1
+            ):
+                celda = hoja_detalle.cell(
+                    row=numero_fila,
+                    column=numero_columna
+                )
+
+                if celda.value is not None:
+                    celda.number_format = (
+                        "dd/mm/yyyy hh:mm"
+                    )
+
+        # Formato de moneda.
+        numero_columna_costo = encabezados_detalle.get(
+            "COSTO ACTUALIZADO (S/)"
+        )
+
+        if numero_columna_costo is not None:
+
+            for numero_fila in range(
+                2,
+                hoja_detalle.max_row + 1
+            ):
+                celda = hoja_detalle.cell(
+                    row=numero_fila,
+                    column=numero_columna_costo
+                )
+
+                if celda.value is not None:
+                    celda.number_format = (
+                        '"S/ " #,##0.00'
                     )
 
     salida.seek(0)
 
     return salida.getvalue()
 
-st.download_button(
-    label="📥 Descargar reporte completo en Excel",
-    data=excel_descarga,
-    file_name="Reporte_Seguimiento_INP.xlsx",
-    mime=(
-        "application/vnd.openxmlformats-officedocument."
-        "spreadsheetml.sheet"
+
+# ============================================================
+# PREPARAR EL ARCHIVO PARA DESCARGA
+# ============================================================
+
+try:
+    excel_descarga = exportar_excel(
+        tabla_estado=tabla_estado,
+        tabla_solicitudes=tabla_solicitudes,
+        tabla_atendidas=tabla_atendidas,
+        tabla_pendientes=tabla_pendientes,
+        detalle=detalle
     )
-)
+
+except Exception as error:
+    st.error(
+        "No se pudo generar el archivo Excel de descarga. "
+        f"Detalle del error: {error}"
+    )
+    excel_descarga = None
 
 
 # ============================================================
-# PIE DEL REPORTE
+# BOTÓN DE DESCARGA
 # ============================================================
 
-st.caption(
-    f"Registros originales: {len(df_original):,} | "
-    f"Registros base: {len(df_base):,} | "
-    f"Registros filtrados: {len(df):,} | "
-    f"Fecha de corte: "
-    f"{pd.Timestamp(fecha_corte).strftime('%d/%m/%Y')}"
-)
+if excel_descarga is not None:
+
+    fecha_archivo = pd.Timestamp.today().strftime(
+        "%Y%m%d"
+    )
+
+    st.download_button(
+        label="📥 Descargar reporte completo en Excel",
+        data=excel_descarga,
+        file_name=(
+            f"Reporte_Seguimiento_INP_{fecha_archivo}.xlsx"
+        ),
+        mime=(
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        use_container_width=True
+    )
