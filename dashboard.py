@@ -64,7 +64,7 @@ st.markdown(
 
     /* Reduce el espacio superior general */
     .block-container {
-        padding-top: 1.5rem;
+        padding-top: 3.5rem !important;
         padding-bottom: 3rem;
         max-width: 1500px;
     }
@@ -74,7 +74,11 @@ st.markdown(
         font-size: 2.25rem;
         font-weight: 800;
         color: #1f2937;
-        margin-bottom: 0.15rem;
+        line-height: 1.3;
+        padding-top: 0.25rem;
+        padding-bottom: 0.15rem;
+        margin: 0 0 0.15rem 0;
+        overflow: visible;
     }
 
     .subtitulo-principal {
