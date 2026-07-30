@@ -1041,7 +1041,6 @@ st.markdown(
 st.dataframe(
     estilo_tabla_estado(tabla_estado),
     width="stretch",
-    height=285
 )
 
 
