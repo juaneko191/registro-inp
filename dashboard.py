@@ -1177,10 +1177,74 @@ st.dataframe(
 )
 
 # ============================================================
-# PREPARAR EL ARCHIVO PARA DESCARGA
+# DESCARGA DEL REPORTE EN EXCEL
 # ============================================================
 
-# La variable se inicializa para evitar NameError.
+def exportar_excel(
+    tabla_estado,
+    tabla_solicitudes,
+    tabla_atendidas,
+    tabla_pendientes,
+    detalle
+):
+    """
+    Genera un archivo Excel con las cuatro secciones
+    del reporte y el detalle de registros filtrados.
+
+    La tabla de solicitudes y atenciones se exporta
+    sin combinar celdas para evitar errores asociados
+    a encabezados multinivel.
+    """
+
+    salida = io.BytesIO()
+
+    with pd.ExcelWriter(
+        salida,
+        engine="openpyxl"
+    ) as writer:
+
+        # Sección 1: Estado de solicitudes
+        tabla_estado.to_excel(
+            writer,
+            sheet_name="Estado_solicitudes"
+        )
+
+        # Sección 2: Solicitudes y atenciones
+        tabla_solicitudes.to_excel(
+            writer,
+            sheet_name="Solicitudes_atenciones",
+            merge_cells=False
+        )
+
+        # Sección 3: Seguimiento de atendidas
+        tabla_atendidas.to_excel(
+            writer,
+            sheet_name="Seguimiento_atendidas"
+        )
+
+        # Sección 4: Pendientes de atención
+        tabla_pendientes.to_excel(
+            writer,
+            sheet_name="Pendientes_atencion"
+        )
+
+        # Detalle de registros filtrados
+        detalle.to_excel(
+            writer,
+            sheet_name="Detalle_filtrado",
+            index=False
+        )
+
+    salida.seek(0)
+
+    return salida.getvalue()
+
+
+# ============================================================
+# GENERAR EL ARCHIVO PARA DESCARGA
+# ============================================================
+
+# Inicializar la variable evita errores si la generación falla.
 excel_descarga = None
 
 try:
@@ -1195,57 +1259,9 @@ try:
 except Exception as error:
     st.error(
         "No se pudo generar el archivo Excel de descarga. "
-        f"Detalle del error: {error}"
+        f"Detalle del error: {type(error).__name__}: {error}"
     )
 
-
-# ============================================================
-# DESCARGA DEL REPORTE EN EXCEL
-# ============================================================
-
-def exportar_excel(
-    tabla_estado,
-    tabla_solicitudes,
-    tabla_atendidas,
-    tabla_pendientes,
-    detalle
-):
-    salida = io.BytesIO()
-
-    with pd.ExcelWriter(
-        salida,
-        engine="openpyxl"
-    ) as writer:
-
-        tabla_estado.to_excel(
-            writer,
-            sheet_name="Estado_solicitudes"
-        )
-
-        tabla_solicitudes.to_excel(
-            writer,
-            sheet_name="Solicitudes_atenciones"
-        )
-
-        tabla_atendidas.to_excel(
-            writer,
-            sheet_name="Seguimiento_atendidas"
-        )
-
-        tabla_pendientes.to_excel(
-            writer,
-            sheet_name="Pendientes_atencion"
-        )
-
-        detalle.to_excel(
-            writer,
-            sheet_name="Detalle_filtrado",
-            index=False
-        )
-
-    salida.seek(0)
-
-    return salida.getvalue()
 
 # ============================================================
 # BOTÓN DE DESCARGA
@@ -1255,13 +1271,16 @@ if excel_descarga is not None:
 
     fecha_archivo = pd.Timestamp.today().strftime("%Y%m%d")
 
+    nombre_archivo = (
+        f"Reporte_Seguimiento_INP_{fecha_archivo}.xlsx"
+    )
+
     st.download_button(
         label="📥 Descargar reporte completo en Excel",
         data=excel_descarga,
-        file_name=f"Reporte_Seguimiento_INP_{fecha_archivo}.xlsx",
+        file_name=nombre_archivo,
         mime=(
-            "application/"
-            "vnd.openxmlformats-officedocument."
+            "application/vnd.openxmlformats-officedocument."
             "spreadsheetml.sheet"
         ),
         width="stretch"
