@@ -1381,7 +1381,8 @@ def exportar_excel(
                 1,
                 filas_encabezado + 1
             ):
-                for celda in hojaif isinstance(celda, MergedCell):
+
+                for celda in hoja[numero_fila]:celda, MergedCell):
                         continue
 
                     celda.fill = relleno_encabezado
