@@ -1176,6 +1176,28 @@ st.dataframe(
     height=450
 )
 
+# ============================================================
+# PREPARAR EL ARCHIVO PARA DESCARGA
+# ============================================================
+
+# La variable se inicializa para evitar NameError.
+excel_descarga = None
+
+try:
+    excel_descarga = exportar_excel(
+        tabla_estado=tabla_estado,
+        tabla_solicitudes=tabla_solicitudes,
+        tabla_atendidas=tabla_atendidas,
+        tabla_pendientes=tabla_pendientes,
+        detalle=detalle
+    )
+
+except Exception as error:
+    st.error(
+        "No se pudo generar el archivo Excel de descarga. "
+        f"Detalle del error: {error}"
+    )
+
 
 # ============================================================
 # DESCARGA DEL REPORTE EN EXCEL
@@ -1231,20 +1253,16 @@ def exportar_excel(
 
 if excel_descarga is not None:
 
-    fecha_archivo = pd.Timestamp.today().strftime(
-        "%Y%m%d"
-    )
+    fecha_archivo = pd.Timestamp.today().strftime("%Y%m%d")
 
     st.download_button(
         label="📥 Descargar reporte completo en Excel",
         data=excel_descarga,
-        file_name=(
-            f"Reporte_Seguimiento_INP_{fecha_archivo}.xlsx"
-        ),
+        file_name=f"Reporte_Seguimiento_INP_{fecha_archivo}.xlsx",
         mime=(
             "application/"
             "vnd.openxmlformats-officedocument."
             "spreadsheetml.sheet"
         ),
-        use_container_width=True
+        width="stretch"
     )
