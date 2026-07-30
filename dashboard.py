@@ -1128,7 +1128,6 @@ altura_pendientes = min(
 st.dataframe(
     estilo_tabla_general(tabla_pendientes_visual),
     width="stretch",
-    height=altura_pendientes
 )
 
 
