@@ -1063,7 +1063,6 @@ st.markdown(
 st.dataframe(
     estilo_tabla_general(tabla_solicitudes),
     width="stretch",
-    height=320
 )
 
 
