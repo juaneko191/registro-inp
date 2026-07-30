@@ -1181,13 +1181,235 @@ st.dataframe(
 # DESCARGA
 # ============================================================
 
-excel_descarga = exportar_excel(
-    tabla_estado=tabla_estado,
-    tabla_solicitudes=tabla_solicitudes,
-    tabla_atendidas=tabla_atendidas,
-    tabla_pendientes=tabla_pendientes,
-    detalle=detalle
-)
+def exportar_excel(
+    tabla_estado,
+    tabla_solicitudes,
+    tabla_atendidas,
+    tabla_pendientes,
+    detalle
+):
+    """
+    Genera un archivo Excel con las cuatro secciones
+    y el detalle de registros filtrados.
+    """
+    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    salida = io.BytesIO()
+
+    with pd.ExcelWriter(
+        salida,
+        engine="openpyxl"
+    ) as writer:
+
+        tabla_estado.to_excel(
+            writer,
+            sheet_name="Estado_solicitudes"
+        )
+
+        tabla_solicitudes.to_excel(
+            writer,
+            sheet_name="Solicitudes_atenciones"
+        )
+
+        tabla_atendidas.to_excel(
+            writer,
+            sheet_name="Seguimiento_atendidas"
+        )
+
+        tabla_pendientes.to_excel(
+            writer,
+            sheet_name="Pendientes_atencion"
+        )
+
+        detalle.to_excel(
+            writer,
+            sheet_name="Detalle_filtrado",
+            index=False
+        )
+
+        # ----------------------------------------------------
+        # FORMATOS GENERALES
+        # ----------------------------------------------------
+
+        relleno_encabezado = PatternFill(
+            fill_type="solid",
+            fgColor="D9D9D9"
+        )
+
+        fuente_encabezado = Font(
+            bold=True,
+            color="000000"
+        )
+
+        borde_delgado = Side(
+            style="thin",
+            color="808080"
+        )
+
+        bordes = Border(
+            left=borde_delgado,
+            right=borde_delgado,
+            top=borde_delgado,
+            bottom=borde_delgado
+        )
+
+        # ----------------------------------------------------
+        # AJUSTES POR HOJA
+        # ----------------------------------------------------
+
+        for nombre_hoja, hoja in writer.sheets.items():
+
+            # Inmoviliza encabezados.
+            if nombre_hoja == "Solicitudes_atenciones":
+                hoja.freeze_panes = "B4"
+            elif nombre_hoja == "Detalle_filtrado":
+                hoja.freeze_panes = "A2"
+            else:
+                hoja.freeze_panes = "B2"
+
+            # Formato de todas las celdas existentes.
+            for fila in hoja.iter_rows():
+                for celda in fila:
+
+                    celda.alignment = Alignment(
+                        horizontal="center",
+                        vertical="center",
+                        wrap_text=True
+                    )
+
+                    celda.border = bordes
+
+            # Formato de encabezados.
+            filas_encabezado = 1
+
+            if nombre_hoja == "Solicitudes_atenciones":
+                # Esta hoja tiene encabezado de dos niveles
+                # y una fila adicional con el nombre del índice.
+                filas_encabezado = 3
+
+            for fila in hoja.iter_rows(
+                min_row=1,
+                max_row=filas_encabezado
+            ):
+                for celda in fila:
+                    celda.fill = relleno_encabezado
+                    celda.font = fuente_encabezado
+                    celda.alignment = Alignment(
+                        horizontal="center",
+                        vertical="center",
+                        wrap_text=True
+                    )
+
+            # Ajuste seguro del ancho de columnas.
+            # Se utiliza el número de columna en lugar de
+            # columna[0].column_letter para evitar errores
+            # con celdas combinadas.
+            for numero_columna in range(
+                1,
+                hoja.max_column + 1
+            ):
+                ancho_maximo = 0
+
+                for numero_fila in range(
+                    1,
+                    hoja.max_row + 1
+                ):
+                    celda = hoja.cell(
+                        row=numero_fila,
+                        column=numero_columna
+                    )
+
+                    valor = celda.value
+
+                    if valor is None:
+                        continue
+
+                    texto = str(valor)
+
+                    # En textos con saltos de línea se usa
+                    # la línea más larga para calcular el ancho.
+                    longitud = max(
+                        len(linea)
+                        for linea in texto.splitlines()
+                    )
+
+                    ancho_maximo = max(
+                        ancho_maximo,
+                        longitud
+                    )
+
+                letra_columna = get_column_letter(
+                    numero_columna
+                )
+
+                hoja.column_dimensions[
+                    letra_columna
+                ].width = min(
+                    max(ancho_maximo + 2, 12),
+                    45
+                )
+
+            # Altura de los encabezados.
+            for numero_fila in range(
+                1,
+                filas_encabezado + 1
+            ):
+                hoja.row_dimensions[
+                    numero_fila
+                ].height = 35
+
+        # ----------------------------------------------------
+        # COLORES DE LA HOJA ESTADO DE SOLICITUDES
+        # ----------------------------------------------------
+
+        hoja_estado = writer.sheets["Estado_solicitudes"]
+
+        colores_columnas = {
+            2: "F4A0A4",  # Rechazados
+            3: "FFF48A",  # Pendientes
+            4: "92D050",  # Validados
+            5: "F2F2F2"   # Total
+        }
+
+        for numero_columna, color in colores_columnas.items():
+            for numero_fila in range(
+                1,
+                hoja_estado.max_row + 1
+            ):
+                celda = hoja_estado.cell(
+                    row=numero_fila,
+                    column=numero_columna
+                )
+
+                celda.fill = PatternFill(
+                    fill_type="solid",
+                    fgColor=color
+                )
+
+        # Resalta última fila de las cuatro tablas.
+        hojas_con_total = [
+            "Estado_solicitudes",
+            "Solicitudes_atenciones",
+            "Seguimiento_atendidas",
+            "Pendientes_atencion"
+        ]
+
+        for nombre_hoja in hojas_con_total:
+            hoja = writer.sheets[nombre_hoja]
+            ultima_fila = hoja.max_row
+
+            for celda in hojacelda.font = Font(bold=True)
+
+                if nombre_hoja != "Estado_solicitudes":
+                    celda.fill = PatternFill(
+                        fill_type="solid",
+                        fgColor="F2F2F2"
+                    )
+
+    salida.seek(0)
+
+    return salida.getvalue()
 
 st.download_button(
     label="📥 Descargar reporte completo en Excel",
